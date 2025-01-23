@@ -1,9 +1,9 @@
 # Training logic
+# src/training/trainer.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from typing import Dict, List
 import logging
 from pathlib import Path
 
@@ -13,9 +13,10 @@ class MNISTTrainer:
         model: nn.Module,
         train_loader: DataLoader,
         test_loader: DataLoader,
-        learning_rate: float = 0.01,
+        learning_rate: float = 0.001,
         epochs: int = 10,
-        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+        use_scheduler: bool = False  # Added parameter
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -23,18 +24,30 @@ class MNISTTrainer:
         self.device = device
         self.epochs = epochs
         
-        # Initialize optimizer and criterion
+        # Initialize optimizer
         self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        
+        # Initialize learning rate scheduler if requested
+        self.scheduler = None
+        if use_scheduler:
+            self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode='min',
+                factor=0.1,
+                patience=3,
+                verbose=True
+            )
+        
+        # Initialize criterion
         self.criterion = nn.CrossEntropyLoss()
         
         # Initialize metrics tracking
-        self.train_losses: List[float] = []
-        self.test_losses: List[float] = []
-        self.train_accuracies: List[float] = []
-        self.test_accuracies: List[float] = []
+        self.train_losses = []
+        self.test_losses = []
+        self.train_accuracies = []
+        self.test_accuracies = []
         
         # Setup logging
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
     def train_epoch(self):
@@ -104,6 +117,10 @@ class MNISTTrainer:
         
         self.test_losses.append(avg_loss)
         self.test_accuracies.append(accuracy)
+        
+        # Update learning rate scheduler if it exists
+        if self.scheduler is not None:
+            self.scheduler.step(avg_loss)
         
         return avg_loss, accuracy
         

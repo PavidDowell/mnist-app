@@ -1,42 +1,56 @@
-# this is the model architecture
+# web/backend/mnist_model.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class MNISTModel(nn.Module):
-    def __init__(self):
+    def __init__(self, dropout_rate=0.3, num_filters=64):
         super().__init__()
-        # Simple CNN architecture
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(1600, 128)  # 1600 = 64 * 5 * 5
-        self.fc2 = nn.Linear(128, 10)
+        # First convolutional block
+        self.conv1 = nn.Conv2d(1, num_filters, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(num_filters)
+        
+        # Second convolutional block
+        self.conv2 = nn.Conv2d(num_filters, num_filters*2, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(num_filters*2)
+        
+        # Third convolutional block
+        self.conv3 = nn.Conv2d(num_filters*2, num_filters*4, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(num_filters*4)
+        
+        # Dropout for regularization
+        self.dropout = nn.Dropout(dropout_rate)
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(num_filters*4 * 3 * 3, 256)
+        self.fc2 = nn.Linear(256, 10)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 1600)  # Flatten
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
-    def get_features(self, x):
-        """Extract features for visualization"""
-        features = []
-        
-        # First conv layer features
+        # First block
         x = self.conv1(x)
-        features.append(('conv1', x))
-        x = F.max_pool2d(x, 2)
+        x = self.bn1(x)
         x = F.relu(x)
+        x = F.max_pool2d(x, 2)
         
-        # Second conv layer features
+        # Second block
         x = self.conv2(x)
-        features.append(('conv2', x))
-        x = self.conv2_drop(x)
-        x = F.max_pool2d(x, 2)
+        x = self.bn2(x)
         x = F.relu(x)
+        x = F.max_pool2d(x, 2)
         
-        return features
+        # Third block
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        
+        # Flatten
+        x = x.view(x.size(0), -1)
+        
+        # Fully connected layers
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        
+        return F.log_softmax(x, dim=1)

@@ -24,7 +24,7 @@ def main():
     logger.info("Loading data...")
     data_module = MNISTDataModule(
         data_dir='./data',
-        batch_size=BATCH_SIZE
+        batch_size=BATCH_SIZE,
         use_augmentation=True #artificially increase the size and diversity of a dataset 
     )
     data_module.setup()

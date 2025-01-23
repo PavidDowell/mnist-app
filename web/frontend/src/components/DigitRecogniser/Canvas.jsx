@@ -4,14 +4,16 @@ export const Canvas = ({ onDrawingComplete }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  // In your Canvas.jsx component:
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = 'black';
-    ctx.lineWidth = 15;
+    ctx.lineWidth = 20;  // Make lines thicker
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';  // Smoother lines
   }, []);
 
   const startDrawing = (e) => {
