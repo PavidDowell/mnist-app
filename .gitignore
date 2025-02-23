@@ -16,6 +16,8 @@ dist/
 # Data and models (exclude large files)
 data/
 models/
+!src/data/dataset.py
+!src/models/mnist_model.py
 
 # IDE
 .vscode/
